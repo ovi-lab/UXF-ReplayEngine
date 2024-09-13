@@ -13,7 +13,7 @@ public class ReplayEngineCustomEditor : UnityEditor.Editor
         {
             string path = EditorUtility.OpenFolderPanel("Select Folder", "", "");
             if(!string.IsNullOrEmpty(path))
-                replayEngine.LoadData(path);
+                replayEngine.LoadData(path, replayEngine.ParticipantID, replayEngine.Session, replayEngine.TrialsFile);
             else
             {
                 Debug.LogError("Something went wrong, try again!");
