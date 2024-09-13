@@ -4,7 +4,7 @@ using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
-namespace Editor
+namespace ubco.ovilab.uxf.replayengine.editor
 {
     public class UxfExtensionsDependencyCheckerWindow : EditorWindow
     {
