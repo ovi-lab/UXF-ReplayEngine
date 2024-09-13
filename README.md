@@ -6,7 +6,9 @@ A replay engine to play tracker data collected from UXF. Relies on [UXF extensio
 
 ### ⚠ Attention ⚠
 
-**To use this project, you must have [UXF extensions](https://github.com/ovi-lab/UXF-extensions) installed first!** Follow the instructions on that repo to set it up.
+**To use this project, you must have [UXF Extensions](https://github.com/ovi-lab/UXF-extensions) installed first!**
+
+If you do not have UXF Extensions installed already, a dialogue box will request you to install UXF Extensions after you install the Replay Engine.
 
 UXF Replay Engine can be added to your project via [Git UPM](https://docs.unity3d.com/2022.3/Documentation/Manual/upm-git.html).
 To add this package, copy:
