@@ -23,7 +23,26 @@ and add it as a git package in the Unity Package Manager
 
 ## Usage
 
-<!-- TODO: Fill this section out -->
+### Setup
+
+- Create a copy of the scene with your UXF setup, and rename it.
+- Remove your Experiment Manager, and the UXF Rig.
+  - **KEEP YOUR TRACKERS INTACT!** This will be used to inform the engine which objects to replay.
+- Create a new GameObject, and attach the `Replay Engine` component to it.
+
+### Loading Data
+
+In Unity Editor:
+-  Set the target participant id, session, and/or trial data file. Leaving any of them blank will load the first available folder or file.
+- Press the `Select Path and Load Data` button. Navigate to the folder which contains the different participant data.
+
+Via Scripts:
+- Get a reference to the Replay Engine, and call the `Load Data` Function. Set the parameters as per the function XML documentation. [TODO: Set up proper documentation]
+
+
+### Known Issues
+
+If the trial is too long and the amount of data being loaded is too much, Unity will severely lag. This is also dependent on your compute power. Might try to parallel process the tracker data in the future to avoid this.
 
 ## Contributing
 

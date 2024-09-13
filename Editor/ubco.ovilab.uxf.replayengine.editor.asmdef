@@ -1,0 +1,20 @@
+{
+    "name": "ubco.ovilab.uxf.replayengine.editor",
+    "rootNamespace": "ubco.ovilab.HPUI.Editor",
+    "references": [
+        "ubco.ovilab.uxf.replayengine",
+        "ubco.ovilab.uxf.extensions",
+        "UXF"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

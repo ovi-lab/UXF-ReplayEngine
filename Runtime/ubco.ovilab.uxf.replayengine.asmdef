@@ -1,0 +1,17 @@
+{
+    "name": "ubco.ovilab.uxf.replayengine",
+    "rootNamespace": "ubco.ovilab.uxf.replayengine",
+    "references": [
+        "GUID:8713b6d88ab25ce49a3e631e03f1ab5d",
+        "GUID:581cccc347938044e8ae3adc4e6d3640"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
