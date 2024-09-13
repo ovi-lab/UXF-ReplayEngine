@@ -1,11 +1,10 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using UnityEngine.Events;
+using UXF;
 
 namespace ubco.ovilab.uxf.replayengine
 {
@@ -18,27 +17,27 @@ namespace ubco.ovilab.uxf.replayengine
         [SerializeField] private string session;
         [SerializeField] private string trialsFile;
 
-        [Header("Replay Paramters")]
-        [SerializeField, Range(1, 2)] private float speedMult;
+        [Header("Replay Parameters")]
+        [SerializeField] private int trialNumber;
         [Range(0, 1), SerializeField] private float playbackTime;
         [SerializeField] private ReplayType replayType;
-        [SerializeField] private List<ReplayTrackerTarget> targets;
+        [SerializeField] private List<PositionRotationTracker> targetActiveTrackerReplayers;
 
+        private string dataPath;
         private string sessionPath;
         private string fullPath;
-
         private float startTime;
         private float endTime;
         private bool isPlaying;
-        private List<TrackerReplayer> replayers = new();
+        private List<TrackerReplayer> activeReplayers = new List<TrackerReplayer>();
         private List<string[]> trialData = new List<string[]>();
         private int currentRowIndex = 1;
-        private Dictionary<string, string> paths = new Dictionary<string, string>();
+        private bool hasInit;
 
         public string ParticipantID => participantID;
         public string Session => session;
         public string TrialsFile => trialsFile;
-
+        public List<PositionRotationTracker> TargetActiveTrackerReplayers => targetActiveTrackerReplayers;
 
         /// <summary>
         /// Loads the trial data of a given participant, session and trial.
@@ -53,6 +52,7 @@ namespace ubco.ovilab.uxf.replayengine
         /// <returns>True if all the data loading was successful else false.</returns>
         public bool LoadData(string path, string participantID = "", string session = "", string trialsFile = "")
         {
+            dataPath = path;
             if (!ValidatePaths(path, participantID, session, trialsFile)) return false;
 
             fullPath = sessionPath + "/" + this.trialsFile;
@@ -191,7 +191,6 @@ namespace ubco.ovilab.uxf.replayengine
 
             if (trialData.Count > 1)
             {
-                Init();
                 Debug.Log("Loaded Data Successfully!");
                 return true;
             }
@@ -213,59 +212,68 @@ namespace ubco.ovilab.uxf.replayengine
                 return false;
             }
 
+
             currentRowIndex = rowIndex;
             string[] row = trialData[rowIndex];
 
-            paths = new Dictionary<string, string>();
-            for (int i = Array.IndexOf(trialData[0], "canceled_trial") + 1; i < row.Length; i++)
-            {
-                string header = trialData[0][i];
-                string relativePath = row[i];
-                string fullPath = Path.Combine("/.." + "/Data", relativePath);
+            startTime = float.Parse(row[Array.IndexOf(trialData[0], "start_time")]);
+            endTime = float.Parse(row[Array.IndexOf(trialData[0], "end_time")]);
 
-                paths[header] = fullPath;
+            foreach (TrackerReplayer replayer in activeReplayers)
+            {
+                string trackerName = replayer.GetTrackerName();
+                //this is a hack and should be fixed later
+                int targetIdx = Array.FindIndex(trialData[0], s => s.ToLower().Contains(trackerName.ToLower()));
+                string targetPath = dataPath + "/../" + row[targetIdx];
+                replayer.SetPathAndLoadData(targetPath);
             }
 
-            return SetUpReplay(row);
-        }
-
-        private bool SetUpReplay(string[] row)
-        {
-            float startTime = float.Parse(row[Array.IndexOf(trialData[0], "start_time")]);
-            float endTime = float.Parse(row[Array.IndexOf(trialData[0], "end_time")]);
-            playbackTime = 0;
-            return SetPaths(paths);
+            return true;
         }
 
         /// <summary>
-        /// Iterates over all target transforms, and sets the <see cref="TrackerReplayer"/> component on the objects.
-        /// If Set All Children As Targets is true, will recursively add the component to all children of the target object.
+        /// Fetches all <see cref="PositionRotationTracker"/> attached GameObjects in the scene
+        /// Uses the input list to validate and focus on a specific subset of trackers.
+        /// If the input list is empty, focuses on all trackers.
         /// </summary>
-        public void SetTrackerReplayers()
+        /// <param name="activeTrackerReplayers"></param>
+        /// <returns>True if everything went alright</returns>
+        public bool SetActiveTrackerReplayers(List<PositionRotationTracker> activeTrackerReplayers)
         {
-            foreach (ReplayTrackerTarget target in targets)
+            PositionRotationTracker[] allTrackers = FindObjectsOfType<PositionRotationTracker>();
+            int addedCounter = 0;
+            activeReplayers.Clear();
+            foreach (PositionRotationTracker targetTracker in activeTrackerReplayers)
             {
-                TrackerReplayer trackerReplayer = target.TargetTransform.gameObject.GetComponent<TrackerReplayer>();
-                if (trackerReplayer == null) trackerReplayer = target.TargetTransform.gameObject.AddComponent<TrackerReplayer>();
-                replayers.Add(trackerReplayer);
-                if (target.SetAllChildrenAsTargets)
+                try
                 {
-                    AddTrackerRecursively(target.TargetTransform);
+                    if (allTrackers.Contains(targetTracker))
+                    {
+                        TrackerReplayer tr = targetTracker.gameObject.GetComponent<TrackerReplayer>();
+                        if (tr == null) tr = targetTracker.gameObject.AddComponent<TrackerReplayer>();
+                        activeReplayers.Add(tr);
+                        addedCounter++;
+                    }
+                    else
+                    {
+                        Debug.LogError(
+                            $"Object {targetTracker.gameObject.name} was not found with a Position Rotation Tracker, is everything okay?");
+                        return false;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError(e);
+                    return false;
                 }
             }
-
-            Debug.Log("Added all tracker components!");
-        }
-
-        private void AddTrackerRecursively(Transform parent)
-        {
-            foreach (Transform child in parent)
+            Debug.Log($"Active: {addedCounter} of total: {allTrackers.Length} trackers in the scene");
+            if(!hasInit)
             {
-                TrackerReplayer component = child.gameObject.GetComponent<TrackerReplayer>();
-                if(component==null) component = child.gameObject.AddComponent<TrackerReplayer>();
-                replayers.Add(component);
-                AddTrackerRecursively(child);
+                Init();
+                hasInit = true;
             }
+            return true;
         }
 
         private void FixedUpdate()
@@ -294,7 +302,7 @@ namespace ubco.ovilab.uxf.replayengine
 
         private void Run()
         {
-            playbackTime += speedMult * Time.deltaTime / (endTime - startTime);
+            playbackTime += Time.deltaTime / (endTime - startTime);
             if (playbackTime >= 1)
             {
                 playbackTime = 1;
@@ -302,7 +310,6 @@ namespace ubco.ovilab.uxf.replayengine
             }
 
             SetFullPose(playbackTime, true);
-
         }
 
         private void OnValidate()
@@ -325,92 +332,17 @@ namespace ubco.ovilab.uxf.replayengine
             {
                 LoadRowData(trialIdx);
             }
+            SetFullPose(timeStamp, isNormalised);
         }
 
         private void SetFullPose(float timeStamp, bool isNormalised)
         {
-            foreach (TrackerReplayer replayer in replayers)
+            foreach (TrackerReplayer replayer in activeReplayers)
             {
                 if (replayer != null) replayer.SetPose(timeStamp, isNormalised);
             }
 
             OnSetPose?.Invoke();
-        }
-
-        private bool SetPaths(Dictionary<string, string> newPaths)
-        {
-            paths.Clear();
-
-            foreach (KeyValuePair<string, string> entry in newPaths)
-            {
-                paths[entry.Key] = entry.Value;
-            }
-
-            foreach (KeyValuePair<string, string> entry in paths)
-            {
-                // SetPathForGO(entry.Key, entry.Value);
-            }
-
-            return false;
-        }
-
-        // private void SetPathForGO(string key, string path)
-        // {
-        //     string goName = key.Split(new string[] { "_movement_location_" }, System.StringSplitOptions.None)[0];
-        //     goName = FixHeaderName(goName);
-        //     GameObject go = GameObject.Find(goName);
-        //     if (go == null)
-        //     {
-        //         Debug.LogWarning("GameObject not found: " + goName + ", skipping!");
-        //         return;
-        //     }
-        //
-        //     TrackerReplayer tracker = go.GetComponent<TrackerReplayer>();
-        //     if (tracker == null)
-        //     {
-        //         tracker = go.AddComponent<TrackerReplayer>();
-        //     }
-        //
-        //     tracker.Init(path);
-        // }
-
-        private static string FixHeaderName(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-            {
-                return input;
-            }
-
-            StringBuilder result = new StringBuilder();
-            bool capitalizeNext = true;
-
-            foreach (char c in input)
-            {
-                if (char.IsDigit(c))
-                {
-                    capitalizeNext = true;
-                    result.Append(c);
-                }
-                else if (c == '_')
-                {
-                    capitalizeNext = false;
-                    result.Append(c);
-                }
-                else
-                {
-                    if (capitalizeNext)
-                    {
-                        result.Append(char.ToUpper(c, CultureInfo.InvariantCulture));
-                        capitalizeNext = false;
-                    }
-                    else
-                    {
-                        result.Append(c);
-                    }
-                }
-            }
-
-            return result.ToString();
         }
 
         public bool LoadNextTrial()
@@ -460,13 +392,6 @@ namespace ubco.ovilab.uxf.replayengine
                 SetFullPose(playbackTime, true);
             }
         }
-    }
-
-    [Serializable]
-    public class ReplayTrackerTarget
-    {
-        public Transform TargetTransform;
-        public bool SetAllChildrenAsTargets;
     }
 
     public enum ReplayType

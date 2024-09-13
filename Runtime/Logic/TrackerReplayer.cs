@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System.Globalization;
+using UXF;
 
 namespace ubco.ovilab.uxf.replayengine
 {
@@ -16,10 +17,10 @@ namespace ubco.ovilab.uxf.replayengine
             normalizedData = new Dictionary<float, (Vector3, Quaternion)>();
 
 
-        public void Init(string path)
+        public string GetTrackerName() => GetComponent<PositionRotationTracker>().objectName;
+
+        public void SetPathAndLoadData(string path)
         {
-            path = path.Replace('\\', '/');
-            path = Application.dataPath + path;
             if (!File.Exists(path))
             {
                 Debug.LogWarning("File not found for " + gameObject.name + " @ " + path);

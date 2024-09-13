@@ -26,7 +26,8 @@ and add it as a git package in the Unity Package Manager
 ### Setup
 
 - Create a copy of the scene with your UXF setup, and rename it.
-- Remove all UXF related components from all your game objects.
+- Remove your Experiment Manager, and the UXF Rig.
+  - **KEEP YOUR TRACKERS INTACT!** This will be used to inform the engine which objects to replay.
 - Create a new GameObject, and attach the `Replay Engine` component to it.
 
 ### Loading Data

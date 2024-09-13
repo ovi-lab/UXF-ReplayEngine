@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomEditor(typeof(ReplayEngine))]
-public class ReplayEngineCustomEditor : UnityEditor.Editor
+public class ReplayEngineCustomEditor : Editor
 {
     public override void OnInspectorGUI()
     {
@@ -20,9 +20,9 @@ public class ReplayEngineCustomEditor : UnityEditor.Editor
             }
         }
 
-        if (GUILayout.Button("Set Replayer Components on Rig"))
+        if (GUILayout.Button("Set Active Tracker Replayers"))
         {
-            replayEngine.SetTrackerReplayers();
+            replayEngine.SetActiveTrackerReplayers(replayEngine.TargetActiveTrackerReplayers);
         }
 
         if (GUILayout.Button("Next Trial"))
