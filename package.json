@@ -1,0 +1,12 @@
+{
+  "name": "ubco.ovilab.uxf.replay-engine",
+  "version": "0.1.0-alpha",
+  "displayName": "UXF Replay Engine",
+  "description": "Replay Engine for UXF",
+  "unity": "2022.3",
+  "author": {
+    "name": "Rishav Banerjee",
+    "email": "rishavbanerjee1710@gmail.com"
+  },
+  "scopedRegistries": []
+}
