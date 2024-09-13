@@ -5,7 +5,8 @@ using System.Globalization;
 
 namespace ubco.ovilab.uxf.replayengine
 {
-    public class TrackerHandler : MonoBehaviour
+    [DisallowMultipleComponent]
+    public class TrackerReplayer : MonoBehaviour
     {
         private List<float> times = new List<float>();
         private List<Vector3> positions = new List<Vector3>();
@@ -50,23 +51,28 @@ namespace ubco.ovilab.uxf.replayengine
             PreprocessData();
         }
 
-        public void SetPose(float normalizedValue)
+        public void SetPose(float timeStamp, bool isNormalised)
         {
-            if (normalizedData.Count == 0)
+            float targetTimeStamp;
+            if(isNormalised)
             {
-                Debug.LogError("No data to replay. Please initialize with a valid path.");
-                return;
-            }
+                if (normalizedData.Count == 0)
+                {
+                    Debug.LogError("No data to replay. Please initialize with a valid path.");
+                    return;
+                }
 
-            if (normalizedValue is > 1f or < 0f)
-            {
-                Debug.LogWarning("Time value not normalised! Clamping between 0 and 1");
-                normalizedValue = Mathf.Clamp01(normalizedValue);
-            }
+                if (timeStamp is > 1f or < 0f)
+                {
+                    Debug.LogWarning("Time value not normalised! Clamping between 0 and 1");
+                    timeStamp = Mathf.Clamp01(timeStamp);
+                }
 
-            float closestTime = FindClosestTime(normalizedValue);
-            Vector3 position = normalizedData[closestTime].Item1;
-            Quaternion rotation = normalizedData[closestTime].Item2;
+                targetTimeStamp = FindClosestTime(timeStamp);
+            }
+            else targetTimeStamp = timeStamp;
+            Vector3 position = normalizedData[targetTimeStamp].Item1;
+            Quaternion rotation = normalizedData[targetTimeStamp].Item2;
 
             transform.position = position;
             transform.rotation = rotation;

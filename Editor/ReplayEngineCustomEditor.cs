@@ -20,6 +20,11 @@ public class ReplayEngineCustomEditor : UnityEditor.Editor
             }
         }
 
+        if (GUILayout.Button("Set Replayer Components on Rig"))
+        {
+            replayEngine.SetTrackerReplayers();
+        }
+
         if (GUILayout.Button("Next Trial"))
         {
             replayEngine.LoadNextTrial();
