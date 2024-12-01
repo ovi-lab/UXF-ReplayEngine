@@ -12,10 +12,7 @@ namespace ubco.ovilab.uxf.replayengine
         private List<float> times = new List<float>();
         private List<Vector3> positions = new List<Vector3>();
         private List<Quaternion> rotations = new List<Quaternion>();
-
-        private Dictionary<float, (Vector3, Quaternion)>
-            normalizedData = new Dictionary<float, (Vector3, Quaternion)>();
-
+        private Dictionary<float, (Vector3, Quaternion)> normalizedData = new Dictionary<float, (Vector3, Quaternion)>();
 
         public string GetTrackerName() => GetComponent<PositionRotationTracker>().objectName;
 

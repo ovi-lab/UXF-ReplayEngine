@@ -22,6 +22,7 @@ namespace ubco.ovilab.uxf.replayengine
         [Range(0, 1), SerializeField] private float playbackTime;
         [SerializeField] private ReplayType replayType;
         [SerializeField] private List<PositionRotationTracker> targetActiveTrackerReplayers;
+        [SerializeField] private List<TrackerReplayer> activeReplayers;
 
         private string dataPath;
         private string sessionPath;
@@ -29,7 +30,6 @@ namespace ubco.ovilab.uxf.replayengine
         private float startTime;
         private float endTime;
         private bool isPlaying;
-        private List<TrackerReplayer> activeReplayers = new List<TrackerReplayer>();
         private List<string[]> trialData = new List<string[]>();
         private int currentRowIndex = 1;
         private bool hasInit;
@@ -191,7 +191,7 @@ namespace ubco.ovilab.uxf.replayengine
 
             if (trialData.Count > 1)
             {
-                Debug.Log("Loaded Data Successfully!");
+                Debug.Log($"Loaded Data Successfully with {trialData.Count - 1} trials!");
                 return true;
             }
 
@@ -224,8 +224,15 @@ namespace ubco.ovilab.uxf.replayengine
                 string trackerName = replayer.GetTrackerName();
                 //this is a hack and should be fixed later
                 int targetIdx = Array.FindIndex(trialData[0], s => s.ToLower().Contains(trackerName.ToLower()));
-                string targetPath = dataPath + "/../" + row[targetIdx];
-                replayer.SetPathAndLoadData(targetPath);
+                try
+                {
+                    string targetPath = dataPath + "/../" + row[targetIdx];
+                    replayer.SetPathAndLoadData(targetPath);
+                }
+                catch
+                {
+                    Debug.LogWarning($"Couldn't find {trackerName} index for loading the path");
+                }
             }
 
             return true;
@@ -240,34 +247,50 @@ namespace ubco.ovilab.uxf.replayengine
         /// <returns>True if everything went alright</returns>
         public bool SetActiveTrackerReplayers(List<PositionRotationTracker> activeTrackerReplayers)
         {
-            PositionRotationTracker[] allTrackers = FindObjectsOfType<PositionRotationTracker>();
+            List<PositionRotationTracker> allTrackers = HierarchySorter.GetObjectsByTypeSorted<PositionRotationTracker>();
             int addedCounter = 0;
             activeReplayers.Clear();
-            foreach (PositionRotationTracker targetTracker in activeTrackerReplayers)
+            if(activeTrackerReplayers.Count > 0)
             {
-                try
+                foreach (PositionRotationTracker targetTracker in activeTrackerReplayers)
                 {
-                    if (allTrackers.Contains(targetTracker))
+                    try
                     {
-                        TrackerReplayer tr = targetTracker.gameObject.GetComponent<TrackerReplayer>();
-                        if (tr == null) tr = targetTracker.gameObject.AddComponent<TrackerReplayer>();
-                        activeReplayers.Add(tr);
-                        addedCounter++;
+                        if (allTrackers.Contains(targetTracker))
+                        {
+                            TrackerReplayer tr = targetTracker.gameObject.GetComponent<TrackerReplayer>();
+                            if (tr == null) tr = targetTracker.gameObject.AddComponent<TrackerReplayer>();
+                            activeReplayers.Add(tr);
+                            addedCounter++;
+                        }
+                        else
+                        {
+                            Debug.LogError(
+                                $"Object {targetTracker.gameObject.name} was not found with a Position Rotation Tracker, is everything okay?");
+                            return false;
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
-                        Debug.LogError(
-                            $"Object {targetTracker.gameObject.name} was not found with a Position Rotation Tracker, is everything okay?");
+                        Debug.LogError(e);
                         return false;
                     }
                 }
-                catch (Exception e)
-                {
-                    Debug.LogError(e);
-                    return false;
-                }
+                Debug.Log($"Active: {addedCounter} of total: {allTrackers.Count} trackers in the scene");
             }
-            Debug.Log($"Active: {addedCounter} of total: {allTrackers.Length} trackers in the scene");
+            else
+            {
+                foreach (PositionRotationTracker tracker in allTrackers)
+                {
+                    TrackerReplayer tr = tracker.gameObject.GetComponent<TrackerReplayer>();
+                    if(tr == null) tracker.gameObject.AddComponent<TrackerReplayer>();
+                    tr = tracker.gameObject.GetComponent<TrackerReplayer>();
+                    activeReplayers.Add(tr);
+                }
+
+                Debug.Log($"Added all {allTrackers.Count} trackers in scene");
+            }
+
             if(!hasInit)
             {
                 Init();
@@ -399,5 +422,34 @@ namespace ubco.ovilab.uxf.replayengine
         Update = 0,
         FixedUpdate = 1,
         LateUpdate = 2
+    }
+
+    public static class HierarchySorter
+    {
+        public static List<T> GetObjectsByTypeSorted<T>() where T : Component
+        {
+            List<T> result = new List<T>();
+            Transform[] roots = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects()
+                .Select(go => go.transform).ToArray();
+            foreach (Transform root in roots)
+            {
+                AddChildrenByType(root, result);
+            }
+            return result;
+        }
+
+        private static void AddChildrenByType<T>(Transform parent, List<T> result) where T : Component
+        {
+            T component = parent.GetComponent<T>();
+            if (component != null)
+            {
+                result.Add(component);
+            }
+
+            foreach (Transform child in parent)
+            {
+                AddChildrenByType(child, result);
+            }
+        }
     }
 }
